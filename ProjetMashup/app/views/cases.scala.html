@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+	<head>
+
+		<title>Infections au Covid-19 dans le monde</title>
+
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<link rel="stylesheet" media="screen" href='@routes.Assets.versioned("stylesheets/main.css")'>
+		<link rel="stylesheet" media="screen" href='@routes.Assets.versioned("stylesheets/prism.css")'>
+		<link rel="shortcut icon" type="image/png" href='@routes.Assets.versioned("images/favicon.png")'>
+		<script src='@routes.Assets.versioned("javascripts/prism.js")' type="text/javascript"></script>
+		<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin=""/>
+		<script src="https://unpkg.com/leaflet/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
+		<style>
+		html, body {
+			height: 100%;
+			margin: 0;
+		}
+		#map {
+			width: 600px;
+			height: 400px;
+		}
+	</style>
+
+		<style>
+    #map { width: 800px; height: 500px; }
+	.info { padding: 6px 8px; font: 14px/16px Arial, Helvetica, sans-serif; background: white; background: rgba(255,255,255,0.8); box-shadow: 0 0 15px rgba(0,0,0,0.2); border-radius: 5px; } .info h4 { margin: 0 0 5px; color: #777; }
+	.legend { text-align: left; line-height: 18px; color: #555; } .legend i { width: 18px; height: 18px; float: left; margin-right: 8px; opacity: 0.7; }
+</style>
+	</head>
+	<body>
+		<section id="top">
+			<div class="wrapper">
+				<img class="resize" src="assets/images/play_icon_reverse.svg" alt="logo"/>
+				<h1>Infections au Covid-19 dans le monde</h1>
+			</div>
+		</section>
+		<section id="content">
+			<div id='map'></div>
+
+			<script type="text/javascript">
+        // On récupère le JSON déjà sur le serveur, qui sera traité par JavaScript
+		// On récupère également les données de l'API sur GitHub
+
+		async function loadMap() {
+			const response = await fetch('http://localhost:9000/countries')
+			const data = await response.json();
+			const map_response = await fetch('https://raw.githubusercontent.com/nvkelso/natural-earth-vector/b70b7b8766c3c83d5f5145cb6f1c93921d383d3f/geojson/ne_10m_admin_0_countries.geojson');
+			const mapData = await map_response.json();
+			for (country of mapData.features) {
+				for (element of data) {
+					if (element.abbreviation === country.properties.ISO_A2) {
+						country.properties.CONFIRMED = element.confirmed;
+						country.properties.DEATHS = element.deaths;
+					}
+					if (country.properties.ISO_A2 === "-99") {
+						if (country.properties.ADMIN === element.countryName) {
+							country.properties.CONFIRMED = element.confirmed;
+							country.properties.DEATHS = element.deaths;
+						}
+					}
+				}
+			}
+
+			let map = L.map('map').setView([0, 0], 1);
+
+			// on charge les tuiles d'OpenStreetMap
+			L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+				attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+			}).addTo(map);
+
+			// contrôle qui montre les informations du pays en passant le curseur de la souris dessus
+			let info = L.control();
+
+			info.onAdd = function (map) {
+				this._div = L.DomUtil.create('div', 'info');
+				this.update();
+				return this._div;
+			};
+
+			info.update = function (props) {
+				this._div.innerHTML = '<h4>Décès Dues au Covid-19</h4>' +  (props ?
+						'<b>' + props.NAME + '</b><br>Cas recensés: ' + props.CONFIRMED + '<br>Décès recensés: ' + props.DEATHS : 'Passez la souris sur un pays');
+			};
+
+			info.addTo(map);
+
+
+			// on récupère la couleur en fonction du nombre de décès dans un pays
+			function getColor(d) {
+				return d > 131072  ? '#b10026' :
+						d > 65536  ? '#e31a1c' :
+								d > 32768 ? '#fc4e2a' :
+										d > 16384  ? '#fd8d3c' :
+												d > 8192   ? '#feb24c' :
+														d > 4096   ? '#fed976' :
+																d > 2048   ? '#ffeda0' :
+																		d >= 0   ? '#ffffcc' : '#e3e3e3';
+			}
+
+			function style(feature) {
+				return {
+					weight: 1,
+					opacity: 1,
+					color: 'black',
+					dashArray: '',
+					fillOpacity: 0.7,
+					fillColor: getColor(feature.properties.DEATHS)
+				};
+			}
+
+			function highlightFeature(e) {
+				let layer = e.target;
+
+				layer.setStyle({
+					weight: 5,
+					color: '#e3e3e3',
+					dashArray: '',
+					fillOpacity: 0.7
+				});
+
+				if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
+					layer.bringToFront();
+				}
+
+				info.update(layer.feature.properties);
+			}
+
+			let geojson;
+
+			function resetHighlight(e) {
+				geojson.resetStyle(e.target);
+				info.update();
+			}
+
+			function zoomToFeature(e) {
+				map.fitBounds(e.target.getBounds());
+			}
+
+			function onEachFeature(feature, layer) {
+				layer.on({
+					mouseover: highlightFeature,
+					mouseout: resetHighlight,
+					click: zoomToFeature
+				});
+			}
+
+			// on charge le fichier GeoJSON
+			geojson = L.geoJson(mapData, {
+				style: style,
+				onEachFeature: onEachFeature
+			}).addTo(map);
+
+			// information tout en bas à droite de la carte
+			map.attributionControl.addAttribution('Données d\'infections: &copy; <a href="https://covid-api.mmediagroup.fr/v1/cases">Covid-19 JSON data</a>');
+
+			let legend = L.control({position: 'bottomright'});
+
+			legend.onAdd = function (map) {
+				let div = L.DomUtil.create("div", "info legend"),
+						grades = [0, 2048, 4096, 8192, 16384, 32768, 65536, 131072],
+						labels = [];
+
+				// on parcours les échelons pour afficher la légende sur la carte
+				div.innerHTML = '<i style="background:#e3e3e3"></i>No Data<br>';
+
+				for (let i = 0; i < grades.length; i++) {
+					div.innerHTML +=
+							'<i style="background:' +
+							getColor(grades[i] + 1) +
+							'"></i> ' +
+							grades[i] +
+							(grades[i + 1] ? "&ndash;" + grades[i + 1] + ' décès' + "<br>" : "+ décès"); // Petit changement ici pour les décès.
+				}
+
+				return div;
+			};
+
+			legend.addTo(map);
+		}
+
+		loadMap();
+
+</script>
+		</section>
+	</body>
+</html>

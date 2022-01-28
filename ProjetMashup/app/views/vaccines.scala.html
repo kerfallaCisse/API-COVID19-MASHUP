@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+	<head>
+
+		<title>Vaccination contre le Covid-19 dans le monde</title>
+
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<link rel="stylesheet" media="screen" href='@routes.Assets.versioned("stylesheets/main.css")'>
+		<link rel="stylesheet" media="screen" href='@routes.Assets.versioned("stylesheets/prism.css")'>
+		<link rel="shortcut icon" type="image/png" href='@routes.Assets.versioned("images/favicon.png")'>
+		<script src='@routes.Assets.versioned("javascripts/prism.js")' type="text/javascript"></script>
+		<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin=""/>
+		<script src="https://unpkg.com/leaflet/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
+		<style>
+		html, body {
+			height: 100%;
+			margin: 0;
+		}
+		#map {
+			width: 600px;
+			height: 400px;
+		}
+	</style>
+
+		<style>
+    #map { width: 800px; height: 500px; }
+	.info { padding: 6px 8px; font: 14px/16px Arial, Helvetica, sans-serif; background: white; background: rgba(255,255,255,0.8); box-shadow: 0 0 15px rgba(0,0,0,0.2); border-radius: 5px; } .info h4 { margin: 0 0 5px; color: #777; }
+	.legend { text-align: left; line-height: 18px; color: #555; } .legend i { width: 18px; height: 18px; float: left; margin-right: 8px; opacity: 0.7; }
+</style>
+	</head>
+	<body>
+		<section id="top">
+			<div class="wrapper">
+				<img class="resize" src="assets/images/play_icon_reverse.svg" alt="logo"/>
+				<h1>Vaccination contre le Covid-19 dans le monde</h1>
+			</div>
+		</section>
+		<section id="content">
+			<div id='map'></div>
+
+			<script type="text/javascript">
+        // On récupère le JSON déjà sur le serveur, qui sera traité par JavaScript
+		// On récupère également les données de l'API sur GitHub
+
+		async function loadMap() {
+			const response = await fetch('http://localhost:9000/countries')
+			const data = await response.json();
+			const map_response = await fetch('https://raw.githubusercontent.com/nvkelso/natural-earth-vector/b70b7b8766c3c83d5f5145cb6f1c93921d383d3f/geojson/ne_10m_admin_0_countries.geojson');
+			const mapData = await map_response.json();
+			for (country of mapData.features) {
+				for (element of data) {
+					if (element.abbreviation == country.properties.ISO_A2) {
+						country.properties.ADMINISTERED = element.administered;
+						country.properties.PEOPLE_VACCINATED = element.people_vaccinated;
+						country.properties.PEOPLE_PARTIALLY_VACCINATED = element.people_partially_vaccinated;
+						country.properties.VACCINATION_PERCENTAGE = (element.people_vaccinated/country.properties.POP_EST)*100;
+					}
+					if (country.properties.ISO_A2 == "-99") {
+						if (country.properties.ADMIN == element.countryName) {
+							country.properties.ADMINISTERED = element.administered;
+							country.properties.PEOPLE_VACCINATED = element.people_vaccinated;
+							country.properties.PEOPLE_PARTIALLY_VACCINATED = element.people_partially_vaccinated;
+							country.properties.VACCINATION_PERCENTAGE = (element.people_vaccinated/country.properties.POP_EST)*100;
+						}
+					}
+				}
+			}
+
+			let map = L.map('map').setView([0, 0], 1);
+
+			// on charge les tuiles d'OpenStreetMap
+			L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+				attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+			}).addTo(map);
+
+			// contrôle qui montre les informations du pays en passant le curseur de la souris dessus
+			var info = L.control();
+
+			info.onAdd = function (map) {
+				this._div = L.DomUtil.create('div', 'info');
+				this.update();
+				return this._div;
+			};
+
+			info.update = function (props) {
+				this._div.innerHTML = '<h4>Pourcentage Entièrement Vaccinés</h4>' +  (props ?
+						'<b>' + props.NAME + '</b><br>Administrés: ' + props.ADMINISTERED + '<br>Entièrement vaccinés: ' + props.PEOPLE_VACCINATED + '<br>Partiellement vaccinés: ' + props.PEOPLE_PARTIALLY_VACCINATED + '<br>Pourcentage: ' + (Math.round((props.VACCINATION_PERCENTAGE + Number.EPSILON) * 100) / 100) + '%' : 'Passez la souris sur un pays');
+			};
+
+			info.addTo(map);
+
+
+			// on récupère la couleur en fonction du taux de vaccination du pays
+			function getColor(d) {
+				return d > 87.5  ? '#004529' :
+						d > 75  ? '#006837' :
+								d > 62.5 ? '#238443' :
+										d > 50  ? '#41ab5d' :
+												d > 37.5   ? '#78c679' :
+														d > 25   ? '#addd8e' :
+																d > 12.5   ? '#d9f0a3' :
+																		d >= 0   ? '#f7fcb9' : '#e3e3e3';
+			}
+
+			function style(feature) {
+				return {
+					weight: 1,
+					opacity: 1,
+					color: 'black',
+					dashArray: '',
+					fillOpacity: 0.7,
+					fillColor: getColor(feature.properties.VACCINATION_PERCENTAGE)
+				};
+			}
+
+			function highlightFeature(e) {
+				var layer = e.target;
+
+				layer.setStyle({
+					weight: 5,
+					color: '#e3e3e3',
+					dashArray: '',
+					fillOpacity: 0.7
+				});
+
+				if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
+					layer.bringToFront();
+				}
+
+				info.update(layer.feature.properties);
+			}
+
+			var geojson;
+
+			function resetHighlight(e) {
+				geojson.resetStyle(e.target);
+				info.update();
+			}
+
+			function zoomToFeature(e) {
+				map.fitBounds(e.target.getBounds());
+			}
+
+			function onEachFeature(feature, layer) {
+				layer.on({
+					mouseover: highlightFeature,
+					mouseout: resetHighlight,
+					click: zoomToFeature
+				});
+			}
+
+			// on charge le fichier GeoJSON
+			geojson = L.geoJson(mapData, {
+				style: style,
+				onEachFeature: onEachFeature
+			}).addTo(map);
+
+			// information tout en bas à droite de la carte
+			map.attributionControl.addAttribution('Données de vaccination: &copy; <a href="https://covid-api.mmediagroup.fr/v1/vaccines">Covid-19 JSON data</a>');
+
+			var legend = L.control({position: 'bottomright'});
+
+			legend.onAdd = function (map) {
+				var div = L.DomUtil.create("div", "info legend"),
+						grades = [0, 12.5, 25, 37.5, 50, 62.5, 75, 87.5],
+						labels = [];
+
+				// on parcours les échelons pour afficher la légende sur la carte
+				div.innerHTML = '<i style="background:#e3e3e3"></i>No Data<br>';
+
+				for (var i = 0; i < grades.length; i++) {
+					div.innerHTML +=
+							'<i style="background:' +
+							getColor(grades[i] + 1) +
+							'"></i> ' +
+							grades[i] +
+							(grades[i + 1] ? "&ndash;" + grades[i + 1] + '%' + "<br>" : "-100%");
+				}
+
+				return div;
+			};
+
+			legend.addTo(map);
+
+		}
+
+		loadMap();
+
+</script>
+		</section>
+	</body>
+</html>

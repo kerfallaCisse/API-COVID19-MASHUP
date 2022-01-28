@@ -1,0 +1,43 @@
+@()
+
+@main("API-COVID-19")("Bienvenue au Projet API - Covid-19") {
+    @defining(play.core.PlayVersion.current) { version =>
+
+        <section id="content">
+            <div class="wrapper doc">
+                <article>
+                    <h1>Welcome to the Mashup course &#x40; UNIGE</h1>
+                    <h2>Covid-19 API Project</h2>
+                    <p style="color: red; font-weight:bold">Données mondiales: <a href="/global" style="font-style: italic"> Nombre de cas confirmés et nombre de vaccins administrés dans le monde</a></p>
+                    <p>Toutes les requêtes sont envoyés à l'adresse suivante:
+                        <a href="">http:/localhost:9000</a></p>
+                    <p>Requête pour les données sur tous les pays du monde:
+                        <a href="/countries">http:/localhost:9000/countries</a></p>
+                    <p>Requête pour les données sur un pays en particulier: <span style="color:#80c846; text-decoration:underline">http:/localhost:9000/countries/*Nom du pays*</span></p>
+                    <p>Carte de données concernant les décès dues au Covid-19 dans le monde:
+                        <a href="/deaths">http:/localhost:9000/deaths</a></p>
+                    <p>Carte de données concernant la vaccination contre le Covid-19 dans le monde:
+                        <a href="/vaccines">http:/localhost:9000/vaccines</a>
+                    </p><br>
+                    <h2>Sources:</h2><br>
+                    <ul>
+                        <li>Covid-19 API
+                            <ul>
+                                <li><a href="https://covid-api.mmediagroup.fr/v1/cases">https://covid-api.mmediagroup.fr/v1/cases</a></li>
+                                <li><a href="https://covid-api.mmediagroup.fr/v1/vaccines">https://covid-api.mmediagroup.fr/v1/vaccines</a></li>
+                            </ul>
+                        </li>
+                        <li>APIs des cartes interactives:
+                            <ul>
+                                <li>LeafletJS: <a href="https://leafletjs.com/">https://leafletjs.com/</a> <br>-> fichier HTML inspiré de: <a href="https://leafletjs.com/examples/choropleth/example.html">/examples/choropleth/example.html</a></li>
+                                <li>OpenStreetMap: <a href="https://www.openstreetmap.org/">https://www.openstreetmap.org/</a></li>
+                                <li>Carte vectorielle GeoJSON: <a href="https://raw.githubusercontent.com/martynafford/natural-earth-geojson/master/110m/cultural/ne_110m_admin_0_countries.json">https://raw.githubusercontent.com/martynafford/natural-earth-geojson/master/110m/cultural/ne_110m_admin_0_countries.json</a></li>
+                            </ul>
+                        </li>
+
+                    </ul>
+                </article>
+            </div>
+        </section>
+    }
+}
