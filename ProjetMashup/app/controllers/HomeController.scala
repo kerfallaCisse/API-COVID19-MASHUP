@@ -46,7 +46,7 @@ class HomeController @Inject()(val controllerComponents: ControllerComponents) e
   def getAcountry(countryName: String) = Action { implicit request: Request[AnyContent] =>
 
     // On parse le fichier cases.json
-    var stream = new FileInputStream("C:\\Users\\kerfc\\Documents\\ProjetMashup\\app\\controllers\\cases.json")
+    var stream = new FileInputStream("cases.json")
     val jsonCountries = try {
       Json.parse(stream)
     }
@@ -54,7 +54,7 @@ class HomeController @Inject()(val controllerComponents: ControllerComponents) e
       stream.close()
     }
     // On parse le fichier vaccins.json
-    stream = new FileInputStream("C:\\Users\\kerfc\\Documents\\ProjetMashup\\app\\controllers\\vaccins.json")
+    stream = new FileInputStream("vaccins.json")
     val jsVaccins = try {
       Json.parse(stream)
     }

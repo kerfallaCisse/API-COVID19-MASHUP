@@ -22,21 +22,21 @@ object getDatas {
       .get(uri"https://covid-api.mmediagroup.fr/v1/cases")
       .response(asJson[JsValue].getRight)
     val first_response = first_request.send(first_backend).body
-    // On stocke le résultat dans un fichier json
-    os.write.over(os.pwd / "app" / "controllers" / "cases.json", first_response.toString())
+    // On stocke le résultat dans un fichier json dans le répertoire courant
+    os.write.over(os.pwd / "cases.json", first_response.toString())
     // Deuxième requête pour récupérer les données sur les vaccins.
     val second_backend = HttpURLConnectionBackend()
     val second_request = basicRequest
       .get(uri"https://covid-api.mmediagroup.fr/v1/vaccines")
       .response(asJson[JsValue].getRight)
     val second_response = second_request.send(second_backend).body
-    // On stocke le résultat dans un autre fichier json
-    os.write.over(os.pwd / "app" / "controllers" / "vaccins.json", second_response.toString())
+    // On stocke le résultat dans un autre fichier json également dans le répertoire courant
+    os.write.over(os.pwd / "vaccins.json", second_response.toString())
   }
 
   def getAllcountries(): ArrayBuffer[objectToReturn] = {
     // On parse le fichier cases.json
-    var stream = new FileInputStream("C:\\Users\\kerfc\\Documents\\ProjetMashup\\app\\controllers\\cases.json")
+    var stream = new FileInputStream("cases.json")
     val jsonCountries = try {
       Json.parse(stream)
     }
@@ -44,7 +44,7 @@ object getDatas {
       stream.close()
     }
     // On parse le fichier vaccins.json
-    stream = new FileInputStream("C:\\Users\\kerfc\\Documents\\ProjetMashup\\app\\controllers\\vaccins.json")
+    stream = new FileInputStream("vaccins.json")
     val jsVaccins = try {
       Json.parse(stream)
     }
@@ -113,7 +113,7 @@ object getDatas {
 
   def globalCases(): Int = {
     // On parse le fichier cases.json
-    val stream = new FileInputStream("C:\\Users\\kerfc\\Documents\\ProjetMashup\\app\\controllers\\cases.json")
+    val stream = new FileInputStream("cases.json")
     val jsonCases = try {
       Json.parse(stream)
     }
@@ -127,7 +127,7 @@ object getDatas {
   // Pour les vaccins
   def globalVaccins(): JsValue = {
     // On parse le fichier vaccins.json
-    val stream = new FileInputStream("C:\\Users\\kerfc\\Documents\\ProjetMashup\\app\\controllers\\vaccins.json")
+    val stream = new FileInputStream("vaccins.json")
     val jsonVaccins = try {
       Json.parse(stream)
     }
